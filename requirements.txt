@@ -1,10 +1,12 @@
 streamlit
-PyPDF2
-groq
 langchain-groq
 langchain-community
 langchain-classic
 langchain-text-splitters
+pypdf2
 faiss-cpu
 sentence-transformers
 python-dotenv
+bcrypt
+httpx
+plotly
