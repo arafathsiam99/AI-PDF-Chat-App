@@ -1,0 +1,9 @@
+streamlit
+langchain-groq
+langchain-community
+langchain-classic
+langchain-text-splitters
+PyPDF2
+faiss-cpu
+sentence-transformers
+python-dotenv
