@@ -31,28 +31,17 @@ def get_github_login_url():
     return f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=user:email"
 
 def get_github_user(code):
-    # Token নাও
     token_res = httpx.post(
         "https://github.com/login/oauth/access_token",
-        data={
-            "client_id": GITHUB_CLIENT_ID,
-            "client_secret": GITHUB_CLIENT_SECRET,
-            "code": code
-        },
+        data={"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET, "code": code},
         headers={"Accept": "application/json"}
     )
     token = token_res.json().get("access_token")
-
     if not token:
         return None
-
-    # User info নাও
     user_res = httpx.get(
         "https://api.github.com/user",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json"
-        }
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}
     )
     return user_res.json()
 
@@ -61,7 +50,6 @@ def login_page():
     st.markdown("*Smart document analysis powered by AI*")
     st.divider()
 
-    # GitHub OAuth code check
     params = st.query_params
     if "code" in params:
         with st.spinner("Logging in with GitHub..."):
@@ -80,32 +68,11 @@ def login_page():
 
     with tab1:
         st.subheader("Welcome Back!")
-
-        # GitHub Login Button
         github_url = get_github_login_url()
-        st.markdown(f"""
-        <a href="{github_url}" target="_self">
-            <button style="
-                background-color: #24292e;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 16px;
-                width: 100%;
-                margin-bottom: 15px;
-            ">
-                🐙 Continue with GitHub
-            </button>
-        </a>
-        """, unsafe_allow_html=True)
-
+        st.link_button("🐙 Continue with GitHub", github_url, use_container_width=True)
         st.markdown("**── or use username/password ──**")
-
         username = st.text_input("Username", key="login_user")
         password = st.text_input("Password", type="password", key="login_pass")
-
         if st.button("Login", use_container_width=True, type="primary"):
             users = load_users()
             if username in users and check_password(password, users[username]["password"]):
@@ -122,7 +89,6 @@ def login_page():
         new_email = st.text_input("Email", key="reg_email")
         new_password = st.text_input("Password", type="password", key="reg_pass")
         confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm")
-
         if st.button("Register", use_container_width=True, type="primary"):
             if not new_username or not new_password:
                 st.error("❌ Please fill all fields!")
@@ -135,10 +101,7 @@ def login_page():
                 if new_username in users:
                     st.error("❌ Username already exists!")
                 else:
-                    users[new_username] = {
-                        "password": hash_password(new_password),
-                        "email": new_email
-                    }
+                    users[new_username] = {"password": hash_password(new_password), "email": new_email}
                     save_users(users)
                     st.success("✅ Account created! Please login.")
 
