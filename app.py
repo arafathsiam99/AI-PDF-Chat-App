@@ -47,6 +47,31 @@ with col_user:
 
 st.divider()
 
+# Semantic Search Section
+if st.session_state.page == "search":
+    st.title("🔍 Semantic Search")
+    st.markdown("*Search through your PDFs semantically*")
+    st.divider()
+    
+    if not st.session_state.chain:
+        st.warning("⚠️ Please upload and process PDFs first from the Chat page!")
+    else:
+        search_query = st.text_input("🔍 Enter search query", placeholder="e.g. machine learning algorithms")
+        col_a, col_b = st.columns([1, 4])
+        with col_a:
+            top_k = st.selectbox("Results", [3, 5, 10])
+        
+        if search_query:
+            with st.spinner("Searching..."):
+                retriever = st.session_state.chain.retriever
+                results = retriever.vectorstore.similarity_search(search_query, k=top_k)
+            
+            st.success(f"Found {len(results)} relevant passages!")
+            for i, doc in enumerate(results):
+                with st.expander(f"📄 Result {i+1}"):
+                    st.markdown(f'<div class="summary-box">{doc.page_content}</div>', unsafe_allow_html=True)
+    st.stop()
+
 if st.session_state.page == "analytics":
     show_analytics(st.session_state.username)
     st.stop()
