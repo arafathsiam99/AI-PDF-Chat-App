@@ -51,12 +51,11 @@ with col_user:
 
 st.divider()
 
-# Semantic Search Section
+# Semantic Search Page
 if st.session_state.page == "search":
     st.title("🔍 Semantic Search")
     st.markdown("*Search through your PDFs semantically*")
     st.divider()
-    
     if not st.session_state.chain:
         st.warning("⚠️ Please upload and process PDFs first from the Chat page!")
     else:
@@ -64,22 +63,22 @@ if st.session_state.page == "search":
         col_a, col_b = st.columns([1, 4])
         with col_a:
             top_k = st.selectbox("Results", [3, 5, 10])
-        
         if search_query:
             with st.spinner("Searching..."):
                 retriever = st.session_state.chain.retriever
                 results = retriever.vectorstore.similarity_search(search_query, k=top_k)
-            
             st.success(f"Found {len(results)} relevant passages!")
             for i, doc in enumerate(results):
                 with st.expander(f"📄 Result {i+1}"):
                     st.markdown(f'<div class="summary-box">{doc.page_content}</div>', unsafe_allow_html=True)
     st.stop()
 
+# Analytics Page
 if st.session_state.page == "analytics":
     show_analytics(st.session_state.username)
     st.stop()
 
+# Chat Page
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -148,16 +147,13 @@ with col2:
                 st.write(message["content"])
                 st.caption(message.get("time", ""))
 
-    if question := 
     # Voice Input
     st.markdown("**🎤 Or speak your question:**")
     audio_file = st.audio_input("🎙️ Click to record")
-
     if audio_file:
         with st.spinner("🎤 Converting speech to text..."):
             from groq import Groq
             import tempfile
-            import os
             client = Groq(api_key=os.getenv("GROQ_API_KEY"))
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                 tmp.write(audio_file.getvalue())
@@ -171,7 +167,6 @@ with col2:
             os.unlink(tmp_path)
             transcribed = transcription
             st.success(f"📝 Heard: *{transcribed}*")
-
             if st.session_state.chain and transcribed:
                 time_now = datetime.now().strftime("%H:%M")
                 st.session_state.messages.append({"role": "user", "content": transcribed, "time": time_now})
@@ -180,7 +175,8 @@ with col2:
                     answer = response["answer"]
                 st.session_state.messages.append({"role": "assistant", "content": answer, "time": time_now})
                 st.rerun()
-    st.chat_input("Ask anything about your PDFs..."):
+
+    if question := st.chat_input("Ask anything about your PDFs..."):
         if not st.session_state.chain:
             st.warning("⚠️ Please upload and process PDFs first!")
         else:
