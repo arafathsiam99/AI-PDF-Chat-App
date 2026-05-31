@@ -42,6 +42,10 @@ with col_nav:
         if st.button("📊 Analytics", use_container_width=True, type="primary" if st.session_state.page == "analytics" else "secondary"):
             st.session_state.page = "analytics"
             st.rerun()
+    with col_d:
+        if st.button("⚠️ Risk", use_container_width=True, type="primary" if st.session_state.page == "risk" else "secondary"):
+            st.session_state.page = "risk"
+            st.rerun()
 with col_user:
     if st.session_state.avatar:
         st.image(st.session_state.avatar, width=35)
@@ -71,6 +75,155 @@ if st.session_state.page == "search":
             for i, doc in enumerate(results):
                 with st.expander(f"📄 Result {i+1}"):
                     st.markdown(f'<div class="summary-box">{doc.page_content}</div>', unsafe_allow_html=True)
+    st.stop()
+
+# Risk Analyzer Page
+if st.session_state.page == "risk":
+    st.title("⚠️ Smart Document Risk Analyzer")
+    st.markdown("*AI-powered risk detection for Legal, Medical & Financial documents*")
+    st.divider()
+
+    uploaded_risk_file = st.file_uploader("Upload document for risk analysis", type="pdf", key="risk_pdf")
+
+    if uploaded_risk_file:
+        if st.button("🔍 Analyze Risks", type="primary", use_container_width=True):
+            with st.spinner("🤖 Analyzing document for risks..."):
+                from utils.pdf_processor import extract_text_from_pdf
+                from groq import Groq
+
+                text = extract_text_from_pdf(uploaded_risk_file)
+                text_sample = text[:6000]
+
+                client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+                prompt = f"""You are an expert legal, medical, and financial document analyzer.
+Analyze the following document and provide a structured risk analysis.
+
+Document:
+{text_sample}
+
+Provide analysis in this EXACT format:
+
+RISK_SCORE: [number 1-10]
+DOCUMENT_TYPE: [Legal/Medical/Financial/Other]
+
+RED_FLAGS:
+- [flag 1]
+- [flag 2]
+
+CRITICAL_DATES:
+- [date and description]
+
+KEY_CLAUSES:
+- [important clause]
+
+WARNINGS:
+- [warning 1]
+- [warning 2]
+
+RECOMMENDATIONS:
+- [recommendation 1]
+- [recommendation 2]
+
+SUMMARY: [2-3 sentence overall summary]"""
+
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1
+                )
+
+                analysis = response.choices[0].message.content
+                st.session_state.risk_analysis = analysis
+                st.session_state.risk_filename = uploaded_risk_file.name
+
+    if "risk_analysis" in st.session_state:
+        analysis = st.session_state.risk_analysis
+        lines = analysis.split("\n")
+
+        # Risk Score
+        risk_score = 5
+        doc_type = "Document"
+        for line in lines:
+            if "RISK_SCORE:" in line:
+                try:
+                    risk_score = int(line.split(":")[1].strip())
+                except:
+                    pass
+            if "DOCUMENT_TYPE:" in line:
+                doc_type = line.split(":")[1].strip()
+
+        # Score display
+        col_s1, col_s2, col_s3 = st.columns(3)
+        with col_s1:
+            color = "🔴" if risk_score >= 7 else "🟡" if risk_score >= 4 else "🟢"
+            st.metric(f"{color} Risk Score", f"{risk_score}/10")
+        with col_s2:
+            st.metric("📄 Document Type", doc_type)
+        with col_s3:
+            risk_level = "HIGH" if risk_score >= 7 else "MEDIUM" if risk_score >= 4 else "LOW"
+            st.metric("⚠️ Risk Level", risk_level)
+
+        st.divider()
+
+        # Parse sections
+        sections = {
+            "🔴 Red Flags": "RED_FLAGS",
+            "📅 Critical Dates": "CRITICAL_DATES",
+            "🔑 Key Clauses": "KEY_CLAUSES",
+            "⚠️ Warnings": "WARNINGS",
+            "💡 Recommendations": "RECOMMENDATIONS"
+        }
+
+        cols = st.columns(2)
+        col_idx = 0
+
+        for title, key in sections.items():
+            content = []
+            capturing = False
+            for line in lines:
+                if f"{key}:" in line:
+                    capturing = True
+                    continue
+                if capturing:
+                    if any(k in line for k in ["RED_FLAGS", "CRITICAL_DATES", "KEY_CLAUSES", "WARNINGS", "RECOMMENDATIONS", "SUMMARY"]):
+                        break
+                    if line.strip().startswith("-"):
+                        content.append(line.strip())
+
+            with cols[col_idx % 2]:
+                with st.expander(f"{title} ({len(content)} found)", expanded=True):
+                    if content:
+                        for item in content:
+                            st.markdown(f'<div class="summary-box">{item}</div>', unsafe_allow_html=True)
+                    else:
+                        st.info("None found")
+            col_idx += 1
+
+        # Summary
+        summary = ""
+        capturing = False
+        for line in lines:
+            if "SUMMARY:" in line:
+                summary = line.replace("SUMMARY:", "").strip()
+                break
+
+        if summary:
+            st.divider()
+            st.subheader("📋 Overall Summary")
+            st.markdown(f'<div class="summary-box">{summary}</div>', unsafe_allow_html=True)
+
+        # Download report
+        st.divider()
+        report = f"RISK ANALYSIS REPORT\n{'='*50}\nFile: {st.session_state.risk_filename}\n\n{st.session_state.risk_analysis}"
+        st.download_button(
+            "📥 Download Full Report",
+            data=report,
+            file_name=f"risk_report_{st.session_state.risk_filename}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+
     st.stop()
 
 # Analytics Page
