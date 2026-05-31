@@ -148,7 +148,39 @@ with col2:
                 st.write(message["content"])
                 st.caption(message.get("time", ""))
 
-    if question := st.chat_input("Ask anything about your PDFs..."):
+    if question := 
+    # Voice Input
+    st.markdown("**🎤 Or speak your question:**")
+    audio_file = st.audio_input("🎙️ Click to record")
+
+    if audio_file:
+        with st.spinner("🎤 Converting speech to text..."):
+            from groq import Groq
+            import tempfile
+            import os
+            client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                tmp.write(audio_file.getvalue())
+                tmp_path = tmp.name
+            with open(tmp_path, "rb") as f:
+                transcription = client.audio.transcriptions.create(
+                    model="whisper-large-v3",
+                    file=f,
+                    response_format="text"
+                )
+            os.unlink(tmp_path)
+            transcribed = transcription
+            st.success(f"📝 Heard: *{transcribed}*")
+
+            if st.session_state.chain and transcribed:
+                time_now = datetime.now().strftime("%H:%M")
+                st.session_state.messages.append({"role": "user", "content": transcribed, "time": time_now})
+                with st.spinner("🤔 Thinking..."):
+                    response = st.session_state.chain({"question": transcribed})
+                    answer = response["answer"]
+                st.session_state.messages.append({"role": "assistant", "content": answer, "time": time_now})
+                st.rerun()
+    st.chat_input("Ask anything about your PDFs..."):
         if not st.session_state.chain:
             st.warning("⚠️ Please upload and process PDFs first!")
         else:
