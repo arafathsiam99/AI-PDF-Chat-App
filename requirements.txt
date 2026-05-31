@@ -10,4 +10,4 @@ python-dotenv
 bcrypt
 httpx
 plotly
-openai-whisper
+groq
