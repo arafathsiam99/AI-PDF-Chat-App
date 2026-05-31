@@ -2,6 +2,7 @@ import streamlit as st
 from utils.pdf_processor import extract_text_from_pdf, split_text_into_chunks
 from utils.chat_engine import create_vector_store, create_chat_chain
 from auth import login_page, logout
+from analytics import show_analytics
 import json
 import os
 from datetime import datetime
@@ -16,7 +17,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-for key, val in {"logged_in": False, "username": "", "avatar": "", "messages": [], "chain": None, "pdf_names": [], "summaries": {}}.items():
+for key, val in {"logged_in": False, "username": "", "avatar": "", "messages": [], "chain": None, "pdf_names": [], "summaries": {}, "page": "chat"}.items():
     if key not in st.session_state:
         st.session_state[key] = val
 
@@ -24,18 +25,32 @@ if not st.session_state.logged_in:
     login_page()
     st.stop()
 
-col_title, col_user = st.columns([3, 1])
+col_title, col_nav, col_user = st.columns([2, 2, 1])
 with col_title:
     st.title("📄 AI PDF Chat")
-    st.markdown("*Smart document analysis powered by AI*")
+with col_nav:
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("💬 Chat", use_container_width=True, type="primary" if st.session_state.page == "chat" else "secondary"):
+            st.session_state.page = "chat"
+            st.rerun()
+    with col_b:
+        if st.button("📊 Analytics", use_container_width=True, type="primary" if st.session_state.page == "analytics" else "secondary"):
+            st.session_state.page = "analytics"
+            st.rerun()
 with col_user:
     if st.session_state.avatar:
-        st.image(st.session_state.avatar, width=40)
+        st.image(st.session_state.avatar, width=35)
     st.markdown(f"👤 **{st.session_state.username}**")
     if st.button("🚪 Logout", use_container_width=True):
         logout()
 
 st.divider()
+
+if st.session_state.page == "analytics":
+    show_analytics(st.session_state.username)
+    st.stop()
+
 col1, col2 = st.columns([1, 2])
 
 with col1:
