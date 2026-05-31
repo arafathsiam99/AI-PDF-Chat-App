@@ -29,7 +29,7 @@ col_title, col_nav, col_user = st.columns([2, 2, 1])
 with col_title:
     st.title("📄 AI PDF Chat")
 with col_nav:
-    col_a, col_b, col_c = st.columns(3)
+    col_a, col_b, col_c, col_d = st.columns(4)
     with col_a:
         if st.button("💬 Chat", use_container_width=True, type="primary" if st.session_state.page == "chat" else "secondary"):
             st.session_state.page = "chat"
